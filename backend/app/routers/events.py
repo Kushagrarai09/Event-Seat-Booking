@@ -33,6 +33,7 @@ def event_to_response(db: Session, event: Event) -> EventDetailResponse:
             row_label=seat.row_label,
             seat_number=seat.seat_number,
             label=seat.label,
+            price=seat.price,
             is_blocked=seat.is_blocked,
             is_booked=seat.id in booked_ids,
         )
@@ -79,6 +80,7 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db)):
                     event_id=event.id,
                     row_label=row_label,
                     seat_number=seat_number,
+                    price=1200 if row_index < max(1, payload.rows // 3) else 800,
                 )
             )
 

@@ -45,12 +45,14 @@ export default function EventsPage() {
 
       <div className="filters">
         <input
+          suppressHydrationWarning
           placeholder="Search events or venues..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
 
         <select
+          suppressHydrationWarning
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >

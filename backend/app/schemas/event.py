@@ -20,6 +20,7 @@ class SeatResponse(BaseModel):
     row_label: str
     seat_number: int
     label: str
+    price: int
     is_blocked: bool
     is_booked: bool
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAdminBookings, getEvent } from "../../../../../lib/api";
+import { cancelAdminBooking, getAdminBookings, getEvent } from "../../../../../lib/api";
 import { Booking, Event } from "../../../../../lib/types";
 
 export default function AdminBookingsPage({
@@ -11,6 +11,7 @@ export default function AdminBookingsPage({
 }) {
   const [event, setEvent] = useState<Event | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     params.then(async ({ id }) => {
@@ -24,6 +25,15 @@ export default function AdminBookingsPage({
     });
   }, [params]);
 
+  async function cancel(bookingId: number) {
+    try {
+      await cancelAdminBooking(bookingId);
+      setBookings((current) => current.filter((booking) => booking.id !== bookingId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to cancel booking.");
+    }
+  }
+
   if (!event) {
     return <div className="container section"><p>Loading bookings...</p></div>;
   }
@@ -32,6 +42,7 @@ export default function AdminBookingsPage({
     <div className="container section">
       <p className="eyebrow">ADMIN / BOOKINGS</p>
       <h1>{event.name}</h1>
+      {error && <div className="error-box">{error}</div>}
 
       <div className="table-wrapper">
         <table>
@@ -42,6 +53,7 @@ export default function AdminBookingsPage({
               <th>Name</th>
               <th>Email</th>
               <th>Time</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -52,6 +64,11 @@ export default function AdminBookingsPage({
                 <td>{booking.name}</td>
                 <td>{booking.email}</td>
                 <td>{new Date(booking.booked_at).toLocaleString()}</td>
+                <td>
+                  <button className="button secondary" onClick={() => cancel(booking.id)}>
+                    Cancel
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

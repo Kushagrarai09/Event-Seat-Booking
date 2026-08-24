@@ -2,15 +2,29 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getEvents } from "../../lib/api";
+import { cancelAdminEvent, getEvents } from "../../lib/api";
 import { Event } from "../../lib/types";
 
 export default function AdminPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     getEvents().then(setEvents).catch(console.error);
   }, []);
+
+  async function cancelEvent(event: Event) {
+    if (!window.confirm(`Cancel ${event.name}? This will remove all bookings and seats.`)) {
+      return;
+    }
+
+    try {
+      await cancelAdminEvent(event.id);
+      setEvents((current) => current.filter((item) => item.id !== event.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to cancel event.");
+    }
+  }
 
   return (
     <div className="container section">
@@ -44,6 +58,7 @@ export default function AdminPage() {
       </div>
 
       <h2>Events</h2>
+      {error && <div className="error-box">{error}</div>}
 
       <div className="admin-list">
         {events.map((event) => (
@@ -63,6 +78,9 @@ export default function AdminPage() {
             <div className="admin-actions">
               <Link href={`/admin/events/${event.id}`}>Manage</Link>
               <Link href={`/admin/events/${event.id}/bookings`}>Bookings</Link>
+              <button className="button secondary" onClick={() => cancelEvent(event)}>
+                Cancel Event
+              </button>
             </div>
           </div>
         ))}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SeatMap from "../../../../components/SeatMap";
 import { getEvent } from "../../../../lib/api";
 import { Event, Seat } from "../../../../lib/types";
+import { useSearchParams } from "next/navigation";
 
 export default function SeatSelectionPage({
   params,
@@ -12,17 +13,22 @@ export default function SeatSelectionPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (searchParams.get("conflict") === "1") {
+      setError("One or more selected seats were just booked. Please choose again.");
+    }
+
     params.then(({ id }) =>
       getEvent(Number(id))
         .then(setEvent)
         .catch((err) => setError(err.message))
     );
-  }, [params]);
+  }, [params, searchParams]);
 
   function toggleSeat(seat: Seat) {
     setSelectedIds((current) =>
@@ -81,7 +87,7 @@ export default function SeatSelectionPage({
                   ?.filter((seat) => selectedIds.includes(seat.id))
                   .map((seat) => (
                     <div key={seat.id}>
-                      <span>{seat.label}</span>
+                      <span>{seat.label} · ₹{seat.price}</span>
                       <button onClick={() => toggleSeat(seat)}>Remove</button>
                     </div>
                   ))}
@@ -89,7 +95,9 @@ export default function SeatSelectionPage({
 
               <div className="selection-total">
                 <span>{selectedIds.length} seats</span>
-                <strong>₹{selectedIds.length * 800}</strong>
+                <strong>₹{event.seats
+                  ?.filter((seat) => selectedIds.includes(seat.id))
+                  .reduce((total, seat) => total + seat.price, 0)}</strong>
               </div>
 
               <button

@@ -40,6 +40,7 @@ export default function BookingSuccessPage() {
           <p><strong>Name:</strong> {booking.name}</p>
           <p><strong>Email:</strong> {booking.email}</p>
           <p><strong>Seats:</strong> {booking.seat_labels.join(", ")}</p>
+          <p><strong>Total:</strong> ₹{booking.total_price}</p>
         </div>
 
         <Link className="button primary full" href="/events">

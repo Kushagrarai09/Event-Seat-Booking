@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBooking, getEvent } from "../../lib/api";
+import { ApiError, createBooking, getEvent } from "../../lib/api";
 import { Event } from "../../lib/types";
 
 type Draft = {
@@ -58,6 +58,12 @@ export default function BookingPage() {
 
       router.push("/booking/success");
     } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        sessionStorage.removeItem("bookingDraft");
+        router.replace(`/events/${draft.eventId}/seats?conflict=1`);
+        return;
+      }
+
       setError(
         err instanceof Error
           ? err.message
@@ -90,7 +96,9 @@ export default function BookingPage() {
 
         <div className="selection-total">
           <span>{draft.seatIds.length} seats</span>
-          <strong>₹{draft.seatIds.length * 800}</strong>
+          <strong>₹{event.seats
+            ?.filter((seat) => draft.seatIds.includes(seat.id))
+            .reduce((total, seat) => total + seat.price, 0)}</strong>
         </div>
       </div>
 

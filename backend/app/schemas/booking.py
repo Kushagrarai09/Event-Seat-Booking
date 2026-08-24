@@ -15,7 +15,9 @@ class BookingResponse(BaseModel):
     name: str
     email: EmailStr
     seat_labels: list[str]
+    total_price: int
     booked_at: datetime
+    confirmation_sent: bool
 
 
 class BookingListItem(BaseModel):
@@ -25,6 +27,7 @@ class BookingListItem(BaseModel):
     name: str
     email: EmailStr
     seat_labels: list[str]
+    total_price: int
     booked_at: datetime
 
 

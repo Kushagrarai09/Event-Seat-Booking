@@ -17,6 +17,7 @@ class Seat(Base):
     )
     row_label: Mapped[str] = mapped_column(String(10), nullable=False)
     seat_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    price: Mapped[int] = mapped_column(Integer, nullable=False, default=800)
     is_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow

@@ -45,13 +45,14 @@ export default function SeatMap({
                   ].join(" ")}
                   title={
                     seat.is_booked
-                      ? "Booked"
+                      ? `Booked - ${seat.label}`
                       : seat.is_blocked
-                      ? "Blocked"
+                      ? `Blocked - ${seat.label}`
                       : selected
-                      ? "Selected"
-                      : "Available"
+                      ? `Selected - ${seat.label} - ₹${seat.price}`
+                      : `Available - ${seat.label} - ₹${seat.price}`
                   }
+                  aria-label={`${seat.label}, ${seat.is_booked ? "booked" : seat.is_blocked ? "blocked" : selected ? "selected" : "available"}, ₹${seat.price}`}
                 >
                   {seat.seat_number}
                 </button>

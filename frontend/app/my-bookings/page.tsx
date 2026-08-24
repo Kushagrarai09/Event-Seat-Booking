@@ -1,19 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cancelBooking } from "../../lib/api";
 
 export default function MyBookingsPage() {
   const [booking, setBooking] = useState<any>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const stored = sessionStorage.getItem("lastBooking");
     if (stored) setBooking(JSON.parse(stored));
   }, []);
 
+  async function cancel() {
+    if (!booking) return;
+    try {
+      await cancelBooking(booking.booking.id, booking.booking.email);
+      sessionStorage.removeItem("lastBooking");
+      setBooking(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to cancel booking.");
+    }
+  }
+
   return (
     <div className="container section">
       <p className="eyebrow">ACCOUNT</p>
       <h1>My Bookings</h1>
+      {error && <div className="error-box">{error}</div>}
 
       {!booking ? (
         <div className="empty">
@@ -33,6 +47,9 @@ export default function MyBookingsPage() {
             Seats: <strong>{booking.booking.seat_labels.join(", ")}</strong>
           </p>
           <p>Booking #{booking.booking.id}</p>
+          <button className="button secondary" onClick={cancel}>
+            Cancel Booking
+          </button>
         </div>
       )}
     </div>

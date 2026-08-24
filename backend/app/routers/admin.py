@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,8 +11,14 @@ from app.schemas.booking import (
     BlockSeatRequest,
     BookingListItem,
 )
+from app.services.booking_service import cancel_booking, cancel_event
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+
+@router.delete("/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_admin_event(event_id: int, db: Session = Depends(get_db)):
+    cancel_event(db, event_id)
 
 
 @router.get(
@@ -74,6 +80,7 @@ def list_bookings(event_id: int, db: Session = Depends(get_db)):
                 seat_labels=sorted(
                     item.seat.label for item in booking.booking_seats
                 ),
+                total_price=sum(item.seat.price for item in booking.booking_seats),
                 booked_at=booking.booked_at,
             )
         )
@@ -123,3 +130,8 @@ def update_seat_block(
         "label": seat.label,
         "is_blocked": seat.is_blocked,
     }
+
+
+@router.delete("/bookings/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_admin_booking(booking_id: int, db: Session = Depends(get_db)):
+    cancel_booking(db, booking_id)

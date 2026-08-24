@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -36,3 +36,32 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_booking_seat_constraint() -> None:
+    """Add the booking invariant to databases created before the model constraint."""
+    inspector = inspect(engine)
+    unique_constraints = inspector.get_unique_constraints("booking_seats")
+    has_event_seat_constraint = any(
+        set(constraint.get("column_names") or []) == {"event_id", "seat_id"}
+        for constraint in unique_constraints
+    )
+
+    if not has_event_seat_constraint:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE booking_seats "
+                    "ADD CONSTRAINT uq_event_booked_seat "
+                    "UNIQUE (event_id, seat_id)"
+                )
+            )
+
+
+def ensure_seat_price_column() -> None:
+    columns = {column["name"] for column in inspect(engine).get_columns("seats")}
+    if "price" not in columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE seats ADD COLUMN price INTEGER NOT NULL DEFAULT 800")
+            )

@@ -1,13 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-
-from app.database import Base, engine
+from app.database import (
+    Base,
+    engine,
+    ensure_booking_seat_constraint,
+    ensure_seat_price_column,
+)
 from app.routers import admin, bookings, events
 
 # For this assignment, create_all keeps local setup simple.
 # In a production system, use Alembic migrations.
 Base.metadata.create_all(bind=engine)
+ensure_seat_price_column()
+ensure_booking_seat_constraint()
 
 app = FastAPI(
     title="Event Seat Booking API",
@@ -25,6 +30,7 @@ app.add_middleware(
 
 app.include_router(events.router)
 app.include_router(bookings.router)
+app.include_router(bookings.user_router)
 app.include_router(admin.router)
 
 

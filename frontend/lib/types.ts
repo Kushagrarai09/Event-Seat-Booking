@@ -3,6 +3,7 @@ export type Seat = {
   row_label: string;
   seat_number: number;
   label: string;
+  price: number;
   is_blocked: boolean;
   is_booked: boolean;
 };
@@ -27,5 +28,7 @@ export type Booking = {
   name: string;
   email: string;
   seat_labels: string[];
+  total_price: number;
   booked_at: string;
+  confirmation_sent?: boolean;
 };

@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.models.booking import Booking, BookingSeat
 from app.models.event import Event
@@ -112,3 +112,33 @@ def create_booking(
             status_code=status.HTTP_409_CONFLICT,
             detail="One or more selected seats were just booked by another user.",
         )
+
+
+def cancel_booking(
+    db: Session,
+    booking_id: int,
+    email: str | None = None,
+) -> None:
+    booking = db.execute(
+        select(Booking).where(Booking.id == booking_id).with_for_update()
+    ).scalar_one_or_none()
+
+    if booking is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found.")
+    if email is not None and booking.booker_email.lower() != email.lower():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found.")
+
+    db.delete(booking)
+    db.commit()
+
+
+def cancel_event(db: Session, event_id: int) -> None:
+    event = db.execute(
+        select(Event).where(Event.id == event_id).with_for_update()
+    ).scalar_one_or_none()
+
+    if event is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found.")
+
+    db.delete(event)
+    db.commit()
