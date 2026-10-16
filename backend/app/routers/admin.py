@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -7,6 +9,7 @@ from app.database import get_db
 from app.models.booking import Booking, BookingSeat
 from app.models.event import Event
 from app.models.seat import Seat
+from app.models.seat_hold import SeatHold
 from app.schemas.booking import AdminSummary, BlockSeatRequest, BookingListItem
 from app.services.booking_service import cancel_booking, cancel_event
 
@@ -42,7 +45,7 @@ def update_seat_block(event_id: int, seat_id: int, payload: BlockSeatRequest, db
         raise HTTPException(status_code=404, detail="Seat not found.")
     if payload.blocked:
         booked = db.execute(select(BookingSeat).where(BookingSeat.event_id == event_id, BookingSeat.seat_id == seat_id)).scalar_one_or_none()
-        hold = db.execute(select(__import__('app.models.seat_hold', fromlist=['SeatHold']).SeatHold).where(__import__('app.models.seat_hold', fromlist=['SeatHold']).SeatHold.event_id == event_id, __import__('app.models.seat_hold', fromlist=['SeatHold']).SeatHold.seat_id == seat_id, __import__('app.models.seat_hold', fromlist=['SeatHold']).SeatHold.status == 'active', __import__('app.models.seat_hold', fromlist=['SeatHold']).SeatHold.expires_at > __import__('datetime').datetime.utcnow())).scalar_one_or_none()
+        hold = db.execute(select(SeatHold).where(SeatHold.event_id == event_id, SeatHold.seat_id == seat_id, SeatHold.status == "active", SeatHold.expires_at > datetime.utcnow()).with_for_update()).scalar_one_or_none()
         if booked or hold:
             raise HTTPException(status_code=409, detail="A booked or actively held seat cannot be blocked.")
     seat.is_blocked = payload.blocked
