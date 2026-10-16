@@ -1,161 +1,123 @@
 # Event Seat Booking System
 
-A full-stack event seat booking system built with:
+A full-stack event reservation platform using Next.js, FastAPI and MySQL. The backend focuses on database-correct seat allocation, authenticated users, and expiring five-minute seat holds.
 
-- Next.js
-- FastAPI
-- MySQL
-- Railway
-- Vercel
+## Stack
 
-## Live Demo
-
-Frontend:
-https://event-seat-booking-ten.vercel.app
-
-Backend API:
-https://backend-production-c281.up.railway.app
-
-Swagger API Docs:
-https://backend-production-c281.up.railway.app/docs
-
-## GitHub
-
-https://github.com/Kushagrarai09/Event-Seat-Booking
+- Frontend: Next.js, React, TypeScript
+- Backend: FastAPI, SQLAlchemy, Pydantic
+- Database: MySQL
+- Deployment: Vercel + Railway
 
 ## Features
 
-### Admin
-- Create events
-- Configure rows × columns seating
-- Block/unblock seats
-- View event booking summary
-- View bookings
-- Cancel events/bookings
+### Public
+- Browse events and event details
+- View seat layout, prices, and availability
 
-### User
-- Browse events
-- View seat layout
-- Select multiple seats
-- Book seats
-- Cancel bookings
-- View booking information
+### Accounts and access control
+- Register and sign in with email and password
+- Passwords are stored as PBKDF2 hashes, not plaintext
+- Signed bearer access tokens expire after 24 hours
+- Customer registration never accepts a role from the client
+- Set `ADMIN_EMAILS` on the server to bootstrap designated administrator accounts
+- Event creation and administrative endpoints require an administrator token
+- Booking and cancellation require an authenticated account
 
-## Tech Stack
+### Seat reservation workflow
+1. Sign in to your account.
+2. Choose available seats.
+3. Request a five-minute hold for the selected seats.
+4. Complete checkout before the countdown expires.
+5. The API confirms booking only if the hold is still active and owned by that account.
+6. If another customer holds the seats or the hold expires, the API returns a conflict and the customer must select again.
 
-Frontend:
-Next.js
+The hold is represented by one database row per event-seat pair. Requests lock the seat and hold rows in a consistent order, and MySQL's unique constraints remain an additional protection against competing allocations. The booking transaction consumes the hold and creates all booking-seat records atomically.
 
-Backend:
-FastAPI
+Expired rows can be reclaimed when another hold is requested. Expired holds are ignored when calculating availability. A periodic cleanup task can be added later to keep old rows tidy; correctness does not depend on that cleanup task running.
 
-Database:
-MySQL
+## Environment configuration
 
-Deployment:
-Vercel + Railway
+Create `backend/.env` from `backend/.env.example`:
 
-## Database Design
+```env
+DATABASE_URL=mysql+pymysql://USER:PASSWORD@HOST:3306/DATABASE
+JWT_SECRET_KEY=generate-a-random-secret-of-at-least-32-characters
+ADMIN_EMAILS=admin@example.com
+FRONTEND_URL=http://localhost:3000
+```
 
-Events
-    ↓
-Seats
-    ↓
-Bookings
+Generate a secret locally:
 
-Each event has multiple seats.
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
 
-Each booking references an event and one or more seats.
+Use your real deployed database credentials only in your hosting provider's environment settings. Do not commit `.env` files, database passwords, or the signing secret.
 
-A database-level unique constraint prevents the same
-event seat from being booked more than once.
+Configure `NEXT_PUBLIC_API_URL` in `frontend/.env.local`:
 
-## Concurrency Handling
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-Concurrency handling is the core part of this project.
+The `ADMIN_EMAILS` list is a server-side allowlist of email addresses that receive the admin role at registration. For production use, prefer an explicit, audited administrator provisioning process and do not expose the admin allowlist publicly.
 
-The booking operation is protected at the database level using
-a transaction together with a unique constraint on:
-
-(event_id, seat_id)
-
-This prevents two concurrent requests from successfully
-booking the same seat.
-
-If two users attempt to book the same seat simultaneously:
-
-Request 1 → SUCCESS
-Request 2 → 409 CONFLICT
-
-The second request receives a clear error instead of
-silently overwriting the first booking.
-
-## Atomic Multi-seat Booking
-
-If a user selects multiple seats and even one seat becomes
-unavailable during the booking operation, the complete
-transaction is rolled back.
-
-Therefore:
-
-3 seats requested
-↓
-1 seat unavailable
-↓
-0 seats booked
-
-rather than partially booking 2 seats.
-
-## Concurrency Test
-
-The concurrency behavior was tested by sending two
-near-simultaneous booking requests for the same seat.
-
-Expected result:
-
-Request A → 200 SUCCESS
-Request B → 409 CONFLICT
-
-Only one booking is created.
-
-## Local Setup
+## Local setup
 
 ### Backend
 
+```bash
 cd backend
-
-Create and activate virtual environment.
-
-Install dependencies:
-
+python -m venv .venv
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-
-Run:
-
 uvicorn app.main:app --reload
+```
 
-Backend:
-
-http://localhost:8000
-
-Swagger:
-
-http://localhost:8000/docs
+The backend requires a reachable MySQL database and the environment variables above. API docs are available at `http://localhost:8000/docs`.
 
 ### Frontend
 
+```bash
 cd frontend
-
 npm install
-
-Create .env.local:
-
-NEXT_PUBLIC_API_URL=http://localhost:8000
-
-Run:
-
 npm run dev
+```
 
-Frontend:
+Open `http://localhost:3000`.
 
-http://localhost:3000
+## API overview
+
+| Method | Endpoint | Access |
+|---|---|---|
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| GET | `/api/auth/me` | Signed-in user |
+| GET | `/api/events` | Public |
+| GET | `/api/events/{event_id}` | Public |
+| POST | `/api/events` | Admin |
+| POST | `/api/events/{event_id}/holds` | Signed-in user |
+| DELETE | `/api/events/{event_id}/holds` | Signed-in user |
+| POST | `/api/events/{event_id}/bookings` | Signed-in user with a valid hold |
+| DELETE | `/api/bookings/{booking_id}` | Booking owner |
+| GET/PATCH/DELETE | `/api/admin/...` | Admin |
+
+Send the access token as:
+
+```
+Authorization: Bearer <access_token>
+```
+
+## Notes and limitations
+
+- Email delivery is not configured; booking responses intentionally report `confirmation_sent: false`.
+- Payment processing is not implemented in this phase. A seat hold is not a payment, and a confirmed booking is currently created when checkout is submitted.
+- The current authentication token is stored in browser local storage by the sample frontend. For a public production service, prefer a hardened server-managed session or secure, HttpOnly cookie design, add rate limiting and password reset flows, and review CSRF and XSS protections.
+- The app uses `Base.metadata.create_all` for convenience. Use versioned Alembic migrations for production deployments, and back up the database before applying schema changes.
+- Existing deployments need the new environment variables and new tables before the new code is deployed. Do not deploy this branch to a production database until migrations and current-data compatibility have been checked.
+
+## Original concurrency guarantee
+
+The booking transaction and unique constraint on `(event_id, seat_id)` in `booking_seats` prevent duplicate confirmed bookings. The additional hold table serializes claims for an event-seat pair and allows the active hold to expire or be consumed by a booking.
