@@ -17,10 +17,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   function logout() { clearAuth(); setUser(null); window.dispatchEvent(new Event("event-auth-changed")); window.location.assign("/"); }
   return (
     <html lang="en">
-      <head><title>Eventify - Event Seat Booking</title><meta name="description" content="Event booking with concurrency-safe seat reservations" /></head>
+      <head><title>SeatFlow | Discover events. Secure your seat.</title><meta name="description" content="Discover events, choose your seats, and book with confidence on SeatFlow." /></head>
       <body>
         <header className="navbar">
-          <Link href="/" className="brand">EVENTIFY</Link>
+          <Link href="/" className="brand">SEATFLOW</Link>
           <nav>
             <Link href="/events">Events</Link>
             {user && <Link href="/my-bookings">My Bookings</Link>}
