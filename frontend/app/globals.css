@@ -674,3 +674,16 @@ th {
     flex-direction: column;
   }
 }
+
+
+/* Authentication screens */
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+}
