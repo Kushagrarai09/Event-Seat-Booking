@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,15 +13,23 @@ ensure_seat_price_column()
 ensure_booking_seat_constraint()
 
 app = FastAPI(
-    title="Event Seat Booking API",
+    title="SeatFlow API",
     version="2.0.0",
-    description="Event booking API with role-based access and expiring seat holds.",
+    description="SeatFlow event booking API with role-based access and expiring seat holds.",
 )
+
+# FRONTEND_URL accepts a comma-separated list of exact browser origins.
+# Keep localhost available for local development; configure the deployed
+# SeatFlow frontend origin in the backend environment for production.
+frontend_origins = [
+    origin.strip()
+    for origin in os.getenv("FRONTEND_URL", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_origin_regex=r"https://event-seat-booking.*\\.vercel\\.app",
+    allow_origins=frontend_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
@@ -35,7 +45,7 @@ app.include_router(admin.router)
 
 @app.get("/")
 def root():
-    return {"message": "Event Seat Booking API", "docs": "/docs"}
+    return {"message": "SeatFlow API", "docs": "/docs"}
 
 
 @app.get("/health")
