@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
@@ -41,7 +43,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     existing = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
-    user = User(name=payload.name.strip(), email=email, password_hash=hash_password(payload.password), role="user")
+    admin_emails = {item.strip().lower() for item in os.getenv("ADMIN_EMAILS", "").split(",") if item.strip()}
+    role = "admin" if email in admin_emails else "user"
+    user = User(name=payload.name.strip(), email=email, password_hash=hash_password(payload.password), role=role)
     db.add(user)
     try:
         db.commit()
