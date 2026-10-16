@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
+from app.auth import AuthenticatedUser, get_current_user
 from app.database import get_db
 from app.schemas.booking import BookingCreate, BookingResponse
 from app.services.booking_service import cancel_booking, create_booking
@@ -20,18 +21,19 @@ def book_seats(
     event_id: int,
     payload: BookingCreate,
     db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user),
 ):
-    booking = create_booking(db, event_id, payload)
+    # Use account identity rather than trusting a client-supplied email.
+    payload.email = user.email
+    payload.name = user.name
+    booking = create_booking(db, event_id, payload, user_id=user.id)
 
-    seat_labels = sorted(
-        [item.seat.label for item in booking.booking_seats]
-    )
+    seat_labels = sorted(item.seat.label for item in booking.booking_seats)
     total_price = sum(item.seat.price for item in booking.booking_seats)
 
     logging.getLogger(__name__).info(
-        "Mock booking confirmation email: booking_id=%s recipient=%s seats=%s",
+        "Booking created; email delivery is not configured: booking_id=%s seats=%s",
         booking.id,
-        booking.booker_email,
         ", ".join(seat_labels),
     )
 
@@ -43,13 +45,15 @@ def book_seats(
         seat_labels=seat_labels,
         total_price=total_price,
         booked_at=booking.booked_at,
-        confirmation_sent=True,
+        confirmation_sent=False,
     )
+
 
 @user_router.delete("/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
 def cancel_user_booking(
     booking_id: int,
-    email: str = Query(min_length=3),
     db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user),
 ):
-    cancel_booking(db, booking_id, email)
+    # Verify ownership from the authenticated account, not a query parameter.
+    cancel_booking(db, booking_id, user.email)
