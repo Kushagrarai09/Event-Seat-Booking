@@ -1,6 +1,8 @@
-# Event Seat Booking System
+# SeatFlow
 
-A full-stack event discovery and seat reservation application. The frontend is built with Next.js and TypeScript, while the backend exposes a FastAPI REST API backed by MySQL and SQLAlchemy.
+Discover events. Secure your seat. Make every experience count.
+
+SeatFlow is a full-stack event discovery and seat reservation platform. The frontend is built with Next.js and TypeScript, while the backend exposes a FastAPI REST API backed by MySQL and SQLAlchemy.
 
 > **Project status:** Account authentication, role-based access, five-minute seat holds, and database-backed booking protection are present in the current feature branch. Payment processing, email delivery, and full production observability are not yet implemented. Review and test this branch before production deployment.
 
@@ -76,7 +78,7 @@ The frontend calls the API using `NEXT_PUBLIC_API_URL`. The backend validates re
 | Database | MySQL |
 | Authentication | Password hashing, signed bearer tokens |
 | API documentation | FastAPI OpenAPI / Swagger UI |
-| Deployment | Frontend can be hosted on Vercel or Render; API on a Python web-service host; MySQL on a compatible managed MySQL provider |
+| Deployment | Frontend and API can be hosted as separate services on Render; MySQL on a compatible managed MySQL provider |
 
 ## Repository structure
 
@@ -125,7 +127,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3000`.
 
 ## Backend
 
@@ -226,7 +228,7 @@ Authorization: Bearer <access_token>
 | `DATABASE_URL` | Backend | MySQL SQLAlchemy connection URL |
 | `JWT_SECRET_KEY` | Backend | Secret used to sign/validate access tokens |
 | `ADMIN_EMAILS` | Backend | Comma-separated allowlist for administrator bootstrap, as supported by the application |
-| `FRONTEND_URL` | Backend configuration | Intended frontend origin setting; verify CORS code uses it before relying on it |
+| `FRONTEND_URL` | Backend | Comma-separated list of allowed frontend origins for CORS; defaults to `http://localhost:3000` |
 | `NEXT_PUBLIC_API_URL` | Frontend | Base URL of the FastAPI API |
 
 The example values are placeholders. Never add real credentials or signing secrets to Git.
@@ -256,9 +258,10 @@ A passing local test suite does not by itself establish that production deployme
 Deploy the frontend and backend as separate services:
 
 ### Frontend service
+- Service type: Node web service
 - Root directory: `frontend`
-- Build command: `npm ci && npm run build` when `package-lock.json` is committed; otherwise use the package manager matching the repository lockfile.
-- Start command for a Node-hosted Next.js service: `npm start` (requires a `start` script in `package.json`).
+- Build command: `npm ci && npm run build`
+- Start command: `npm start`
 - Environment: `NEXT_PUBLIC_API_URL=https://YOUR-BACKEND-HOST`
 
 Use a static-site deployment only if the Next.js app is explicitly configured for static export.
@@ -294,7 +297,7 @@ Before deploying a branch with authentication/seat-hold changes to an existing d
 - Email delivery is not configured; booking responses report `confirmation_sent: false`.
 - Authentication tokens are stored in browser local storage by the sample frontend. Review the security trade-offs before public production use.
 - The application currently calls `Base.metadata.create_all` and includes small compatibility helpers. Use reviewed, versioned migrations for production database changes.
-- The `FRONTEND_URL` variable is documented as intended configuration, but the current CORS middleware should be reviewed to ensure it actually reads that variable.
+- CORS reads `FRONTEND_URL` as a comma-separated list of exact allowed origins; set it to the deployed frontend origin in production.
 - Production-grade metrics, distributed tracing, and payment lifecycle states are roadmap items, not completed functionality.
 
 ## Concurrency guarantee
